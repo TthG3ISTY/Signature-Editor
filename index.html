@@ -3,23 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Signature Editor v2 – Placeholders, Selective Strip, Replace Links</title>
+  <title>Signature Editor v4 – Formatting Bar, Toggles, Link Editor</title>
   <style>
-    :root { --bg:#0b0c10; --fg:#e8e8ea; --muted:#a2a2aa; --accent:#7aa2f7; --panel:#15151c; --border:#23232d; }
+    :root { --bg:#0b0c10; --fg:#e8e8ea; --muted:#a2a2aa; --accent:#7aa2f7; --panel:#15151c; --border:#23232d; --on:#1b275a; --on-border:#3b4b84; }
     html,body{height:100%}
     body{margin:0;font:14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif;background:var(--bg);color:var(--fg)}
-    .wrap{max-width:1000px;margin:32px auto;padding:0 16px}
+    .wrap{max-width:1060px;margin:32px auto;padding:0 16px}
+
+    /* Bars */
     .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--panel);border:1px solid var(--border);border-bottom:none;border-radius:12px 12px 0 0;padding:12px}
+    .formatbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:#171826;border:1px solid var(--border);border-top:none;border-radius:0;padding:10px 12px}
+
+    /* Controls */
     .btn{appearance:none;border:1px solid var(--border);background:#0f1016;color:var(--fg);padding:8px 10px;border-radius:9px;cursor:pointer}
     .btn:hover{border-color:#3b3c4d}
-    .btn.primary{border-color:#3b4b84;background:#0e1330}
+    .btn.primary{border-color:var(--on-border);background:#0e1330}
+    .btn.on{background:var(--on);border-color:var(--on-border)}
     .sep{width:1px;height:28px;background:var(--border);margin:0 6px}
-    .editor{min-height:280px;background:#0f1016;border:1px solid var(--border);border-radius:0 0 12px 12px;padding:16px;outline:none}
+
+    select,input[type="number"],input[type="url"],input[type="text"]{background:#0f1016;border:1px solid #2a2b36;border-radius:8px;color:var(--fg);padding:6px 8px}
+    input[type="color"]{appearance:none;border:none;background:transparent;width:36px;height:32px;padding:0}
+    input.hex{width:110px;text-transform:uppercase}
+
+    /* Editor */
+    .editor{min-height:320px;background:#0f1016;border:1px solid var(--border);border-radius:0 0 12px 12px;padding:16px;outline:none}
     .editor img{display:block;border:0;outline:0;text-decoration:none;-ms-interpolation-mode:bicubic}
     .placeholder{display:block;box-sizing:border-box;background:repeating-linear-gradient(45deg, #1b1c25 0 10px, #161821 10px 20px);border:1px dashed #444;color:#c9c9cf;padding:6px;font:12px/1.2 Arial, Helvetica, sans-serif;text-align:center}
     .placeholder .meta{opacity:.8;font-size:11px}
+
     .small{font-size:12px;color:var(--muted)}
-    #htmlView{width:100%;height:280px;resize:vertical;background:#0f1016;color:var(--fg);border:1px solid var(--border);border-radius:0 0 12px 12px;padding:16px}
+    #htmlView{width:100%;height:320px;resize:vertical;background:#0f1016;color:var(--fg);border:1px solid var(--border);border-radius:0 0 12px 12px;padding:16px}
     .hidden{display:none}
     .status{color:var(--muted);font-size:12px;margin-top:8px}
 
@@ -31,21 +44,62 @@
     .imgrow{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid #1f2030}
     .thumb{width:64px;height:48px;object-fit:contain;background:#0f1016;border:1px solid #1f2030;border-radius:6px}
     .field{display:flex;gap:6px;align-items:center}
-    input[type="url"],input[type="text"],input[type="number"]{background:#0f1016;border:1px solid #2a2b36;border-radius:8px;color:var(--fg);padding:6px 8px;width:100%}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1 style="margin:0 0 10px">Signature Editor v2</h1>
-    <p class="small" style="margin:0 0 14px">Adds real placeholders that preserve dimensions, lets you strip specific images, and replace embedded sources with new links without changing size.</p>
+    <h1 style="margin:0 0 10px">Signature Editor v4</h1>
+    <p class="small" style="margin:0 0 12px">Now with a proper formatting bar, Windows‑style toggles, and per‑image link editing. Still does placeholders, selective strip, replace, and export.</p>
 
+    <!-- Core actions bar -->
     <div class="toolbar" role="toolbar">
       <button class="btn" id="btnStripAll">Strip all → placeholders</button>
       <button class="btn" id="btnImagesPanel">Manage images…</button>
+      <button class="btn" id="btnRipAll">Rip embeds → inline</button>
       <span class="sep"></span>
-      <button class="btn" id="btnToggle">Toggle HTML view</button>
-      <button class="btn" id="btnExport">Export HTML</button>
-      <button class="btn" id="btnSimplify">Simplify styles</button>
+      <button class="btn" id="btnToggle">HTML</button>
+      <button class="btn" id="btnExport">Export</button>
+      <button class="btn" id="btnSimplify">Simplify</button>
+    </div>
+
+    <!-- Formatting bar like Word -->
+    <div class="formatbar" role="toolbar" aria-label="Formatting bar">
+      <button class="btn" id="boldBtn"><b>B</b></button>
+      <button class="btn" id="italicBtn"><i>I</i></button>
+      <button class="btn" id="underlineBtn"><u>U</u></button>
+      <span class="sep"></span>
+      <label class="small">Font</label>
+      <select id="fontFamily">
+        <option value="">Default</option>
+        <option>Arial</option>
+        <option>Helvetica</option>
+        <option>Tahoma</option>
+        <option>Verdana</option>
+        <option>Times New Roman</option>
+        <option>Georgia</option>
+        <option>Courier New</option>
+        <option>Inter</option>
+        <option>Roboto</option>
+      </select>
+      <label class="small">Size</label>
+      <select id="fontSize">
+        <option value="">–</option>
+        <option value="12px">12</option>
+        <option value="13px">13</option>
+        <option value="14px">14</option>
+        <option value="16px">16</option>
+        <option value="18px">18</option>
+        <option value="20px">20</option>
+        <option value="22px">22</option>
+        <option value="24px">24</option>
+      </select>
+      <span class="sep"></span>
+      <label class="small">Color</label>
+      <input type="color" id="colorPicker" value="#E8E8EA" />
+      <input class="hex" id="hexInput" placeholder="#RRGGBB" value="#E8E8EA" />
+      <button class="btn" id="applyColor">Apply</button>
+      <span class="sep"></span>
+      <button class="btn" id="clearFormatting">Clear formatting</button>
     </div>
 
     <div id="editor" class="editor" contenteditable="true">
@@ -54,7 +108,9 @@
           <div style="font-weight:700">Your Name</div>
           <div style="color:#666">Title · Company</div>
           <div>
-            <img src="cid:logo@company" width="160" height="40" alt="Company Logo" />
+            <a href="https://instagram.com/yourbrand" target="_blank">
+              <img src="cid:logo@company" width="160" height="40" alt="Company Logo" />
+            </a>
           </div>
         </td>
       </tr></table>
@@ -65,10 +121,10 @@
     <div class="status" id="status">Ready.</div>
   </div>
 
-  <!-- Drawer for per-image actions -->
+  <!-- Drawer for per-image actions (now with link editor) -->
   <div id="drawer" class="drawer" aria-hidden="true">
     <div class="head">
-      <strong>Images in document</strong>
+      <strong>Images & Placeholders</strong>
       <div>
         <button class="btn" id="btnCloseDrawer">Close</button>
       </div>
@@ -85,9 +141,11 @@ const imagesList = document.getElementById('imagesList');
 
 function setStatus(msg){ statusEl.textContent = msg; }
 
-// Toggle HTML view
-document.getElementById('btnToggle').addEventListener('click', () => {
+/* =============== HTML toggle, export, simplify =============== */
+const btnToggle = document.getElementById('btnToggle');
+btnToggle.addEventListener('click', () => {
   const showing = !htmlView.classList.contains('hidden');
+  btnToggle.classList.toggle('on');
   if (showing){
     editor.innerHTML = htmlView.value; htmlView.classList.add('hidden'); editor.classList.remove('hidden'); setStatus('WYSIWYG mode.');
   } else {
@@ -95,47 +153,91 @@ document.getElementById('btnToggle').addEventListener('click', () => {
   }
 });
 
-// Export
 document.getElementById('btnExport').addEventListener('click', () => {
   const html = editor.innerHTML.trim();
   const blob = new Blob([html], {type:'text/html;charset=utf-8'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'signature.html'; a.click(); setStatus('Exported signature.html');
 });
 
-// Simplify styles
 document.getElementById('btnSimplify').addEventListener('click', () => {
   editor.querySelectorAll('*').forEach(el => {
-    [...el.attributes].forEach(attr => { if(!/^(style|href|src|width|height|alt|cellpadding|cellspacing|border)$/i.test(attr.name)) el.removeAttribute(attr.name); });
+    [...el.attributes].forEach(attr => { if(!/^(style|href|src|width|height|alt|cellpadding|cellspacing|border|target)$/i.test(attr.name)) el.removeAttribute(attr.name); });
   });
   setStatus('Simplified attributes.');
 });
 
-// Create placeholder element with same box size
+/* =============== Formatting bar =============== */
+const boldBtn = document.getElementById('boldBtn');
+const italicBtn = document.getElementById('italicBtn');
+const underlineBtn = document.getElementById('underlineBtn');
+
+function toggleInline(tag){
+  document.execCommand(tag); // yes, deprecated; still most reliable for contenteditable in simple editors
+}
+
+boldBtn.addEventListener('click', () => { toggleInline('bold'); boldBtn.classList.toggle('on'); });
+italicBtn.addEventListener('click', () => { toggleInline('italic'); italicBtn.classList.toggle('on'); });
+underlineBtn.addEventListener('click', () => { toggleInline('underline'); underlineBtn.classList.toggle('on'); });
+
+const ff = document.getElementById('fontFamily');
+ff.addEventListener('change', () => applyInlineStyle('fontFamily', ff.value));
+
+const fs = document.getElementById('fontSize');
+fs.addEventListener('change', () => applyInlineStyle('fontSize', fs.value));
+
+const colorPicker = document.getElementById('colorPicker');
+const hexInput = document.getElementById('hexInput');
+
+function sanitizeHex(v){
+  v = v.trim(); if (!v) return ''; if (v[0] !== '#') v = '#'+v; if (/^#[0-9a-fA-F]{6}$/.test(v)) return v.toUpperCase(); return '';
+}
+
+colorPicker.addEventListener('input', () => { hexInput.value = colorPicker.value.toUpperCase(); });
+hexInput.addEventListener('input', () => {
+  const v = sanitizeHex(hexInput.value); if (v){ colorPicker.value = v; }
+});
+
+document.getElementById('applyColor').addEventListener('click', () => {
+  const v = sanitizeHex(hexInput.value) || colorPicker.value; if (!v) return; applyInlineStyle('color', v);
+});
+
+document.getElementById('clearFormatting').addEventListener('click', () => {
+  document.execCommand('removeFormat');
+});
+
+function applyInlineStyle(prop, value){
+  if (!value) return;
+  const sel = window.getSelection(); if (!sel || sel.rangeCount === 0) return;
+  const range = sel.getRangeAt(0);
+  const span = document.createElement('span'); span.style[prop] = value; range.surroundContents(span);
+}
+
+/* =============== Image strip → placeholders and list drawer =============== */
 function makePlaceholder(w,h,alt){
   const span = document.createElement('span');
-  span.className = 'placeholder';
-  span.setAttribute('data-ph', '1');
+  span.className = 'placeholder'; span.setAttribute('data-ph', '1');
   if (alt) span.setAttribute('data-alt', alt);
   span.setAttribute('style', `width:${w}px;height:${h}px`);
   span.innerHTML = `<div>Image placeholder</div><div class="meta">${w}×${h}px${alt? ' · '+escapeHtml(alt):''}</div>`;
   return span;
 }
-
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
 
-// Strip ALL images → placeholders
-document.getElementById('btnStripAll').addEventListener('click', () => {
+const btnStripAll = document.getElementById('btnStripAll');
+btnStripAll.addEventListener('click', () => {
+  btnStripAll.classList.toggle('on');
   const imgs = [...editor.querySelectorAll('img')];
   imgs.forEach(img => {
     const w = img.width || img.getAttribute('width') || img.naturalWidth || 120;
     const h = img.height || img.getAttribute('height') || img.naturalHeight || 60;
     const ph = makePlaceholder(Number(w), Number(h), img.alt || '');
-    img.replaceWith(ph);
+    // Preserve link wrapper if present
+    const a = img.closest('a');
+    if (a){ img.replaceWith(ph); } else { img.replaceWith(ph); }
   });
   setStatus(`Replaced ${imgs.length} image(s) with placeholders.`);
 });
 
-// Drawer with per-image actions
 function openDrawer(){ drawer.classList.add('open'); drawer.setAttribute('aria-hidden','false'); refreshImagesList(); }
 function closeDrawer(){ drawer.classList.remove('open'); drawer.setAttribute('aria-hidden','true'); }
 
@@ -143,17 +245,24 @@ document.getElementById('btnImagesPanel').addEventListener('click', openDrawer);
 
 document.getElementById('btnCloseDrawer').addEventListener('click', closeDrawer);
 
+function px(val){ return Number(String(val).replace('px','')) || 0; }
+
+function dimsOf(el){
+  const isPh = el.matches('.placeholder');
+  return { w: isPh ? px(el.style.width) : (el.width || el.naturalWidth || 0), h: isPh ? px(el.style.height) : (el.height || el.naturalHeight || 0) };
+}
+function altOf(el){ return el.matches('.placeholder') ? (el.getAttribute('data-alt')||'') : (el.alt||''); }
+
 function refreshImagesList(){
   imagesList.innerHTML = '';
   const all = [...editor.querySelectorAll('img, .placeholder[data-ph]')];
   if (all.length === 0){ imagesList.innerHTML = '<div class="small">No images or placeholders detected.</div>'; return; }
 
-  all.forEach((el, idx) => {
+  all.forEach((el) => {
     const isPh = el.matches('.placeholder');
-    const w = isPh ? px(el.style.width) : (el.width || el.naturalWidth || 0);
-    const h = isPh ? px(el.style.height) : (el.height || el.naturalHeight || 0);
+    const {w,h} = dimsOf(el);
     const src = isPh ? '(placeholder)' : (el.getAttribute('src')||'');
-    const alt = isPh ? (el.getAttribute('data-alt')||'') : (el.alt||'');
+    const alt = altOf(el);
 
     const row = document.createElement('div'); row.className = 'imgrow';
     const thumb = document.createElement(isPh ? 'div' : 'img');
@@ -164,60 +273,71 @@ function refreshImagesList(){
     info.innerHTML = `<div class="small">${isPh?'Placeholder':'Image'} · ${w}×${h}px</div>`+
                      `<div class="small" style="opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">src: ${escapeHtml(src)}</div>`;
 
+    // actions
     const actions = document.createElement('div');
     actions.style.display='grid'; actions.style.gap='6px'; actions.style.gridTemplateColumns='1fr';
 
-    // Replace source URL (does not change box size)
-    const replaceWrap = document.createElement('div'); replaceWrap.className='field';
+    // Replace src via URL
+    const urlWrap = document.createElement('div'); urlWrap.className='field';
     const url = document.createElement('input'); url.type='url'; url.placeholder='https://example.com/logo.png'; url.value = isPh ? '' : src;
-    const btnApply = document.createElement('button'); btnApply.className='btn primary'; btnApply.textContent='Replace src';
-    btnApply.addEventListener('click', () => {
-      if (!url.value) return;
-      const img = document.createElement('img');
-      img.alt = alt; img.src = url.value; img.width = w; img.height = h; img.style.cssText = `display:block;width:${w}px;height:${h}px;border:0;outline:0;text-decoration:none;`;
+    const apply = document.createElement('button'); apply.className='btn primary'; apply.textContent='Replace src';
+    apply.addEventListener('click', ()=>{
+      if(!url.value) return; const img = document.createElement('img'); img.alt=alt; img.src=url.value; img.width=w; img.height=h; img.style.cssText=`display:block;width:${w}px;height:${h}px;border:0;outline:0;text-decoration:none;`;
       el.replaceWith(img); refreshImagesList(); setStatus('Replaced image source.');
     });
-    replaceWrap.append(url, btnApply);
+    urlWrap.append(url, apply);
 
-    // Strip/restore toggle for this element
+    // Toggle strip/restore
     const btnToggle = document.createElement('button'); btnToggle.className='btn'; btnToggle.textContent = isPh ? 'Restore to <img>' : 'Strip → placeholder';
     btnToggle.addEventListener('click', () => {
-      if (isPh){
-        const img = document.createElement('img');
-        img.alt = alt; img.src = ''; img.width = w; img.height = h; img.style.cssText = `display:block;width:${w}px;height:${h}px;border:0;outline:0;text-decoration:none;`;
-        el.replaceWith(img);
-      } else {
-        const ph = makePlaceholder(w,h,alt); el.replaceWith(ph);
-      }
+      if (isPh){ const img=document.createElement('img'); img.alt=alt; img.src=''; img.width=w; img.height=h; img.style.cssText=`display:block;width:${w}px;height:${h}px;border:0;outline:0;text-decoration:none;`; el.replaceWith(img); }
+      else { const ph = makePlaceholder(w,h,alt); el.replaceWith(ph); }
       refreshImagesList(); setStatus('Toggled element.');
     });
 
-    // File upload to replace source (keeps size)
+    // Upload file (keep size)
     const upload = document.createElement('input'); upload.type='file'; upload.accept='image/*'; upload.className='small';
-    upload.addEventListener('change', () => {
-      const f = upload.files[0]; if(!f) return; const r = new FileReader();
-      r.onload = () => { const img = document.createElement('img'); img.src = r.result; img.alt = alt; img.width = w; img.height = h; img.style.cssText=`display:block;width:${w}px;height:${h}px;border:0;outline:0;text-decoration:none;`; el.replaceWith(img); refreshImagesList(); setStatus(`Replaced with ${f.name}`);} ;
-      r.readAsDataURL(f);
+    upload.addEventListener('change', ()=>{
+      const f=upload.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{const img=document.createElement('img'); img.src=r.result; img.alt=alt; img.width=w; img.height=h; img.style.cssText=`display:block;width:${w}px;height:${h}px;border:0;outline:0;text-decoration:none;`; el.replaceWith(img); refreshImagesList(); setStatus(`Replaced with ${f.name}`)}; r.readAsDataURL(f);
     });
 
-    actions.append(replaceWrap, btnToggle, upload);
+    // Link editor for image
+    const linkWrap = document.createElement('div'); linkWrap.className='field';
+    const linkInput = document.createElement('input'); linkInput.type='url'; linkInput.placeholder='https://instagram.com/yourbrand';
+    const targetToggle = document.createElement('button'); targetToggle.className='btn'; targetToggle.textContent='Open in new tab';
+    const aAncestor = el.closest('a');
+    if (aAncestor){ linkInput.value = aAncestor.getAttribute('href')||''; if (aAncestor.getAttribute('target')==='_blank') targetToggle.classList.add('on'); }
+    targetToggle.addEventListener('click', ()=>{ targetToggle.classList.toggle('on'); });
+    const linkApply = document.createElement('button'); linkApply.className='btn primary'; linkApply.textContent='Apply link';
+    linkApply.addEventListener('click', ()=>{
+      const href = linkInput.value.trim();
+      if (!href){ if(aAncestor){ const imgEl = el; aAncestor.replaceWith(imgEl); } refreshImagesList(); setStatus('Removed link.'); return; }
+      let wrapper = aAncestor; if(!wrapper){ wrapper=document.createElement('a'); el.replaceWith(wrapper); wrapper.appendChild(el); }
+      wrapper.setAttribute('href', href);
+      if (targetToggle.classList.contains('on')) wrapper.setAttribute('target','_blank'); else wrapper.removeAttribute('target');
+      setStatus('Updated link.');
+    });
+    linkWrap.append(linkInput, targetToggle, linkApply);
+
+    actions.append(urlWrap, btnToggle, upload, linkWrap);
     row.append(thumb, info, actions);
     imagesList.append(row);
   });
 }
 
-function px(val){ return Number(String(val).replace('px','')) || 0; }
+/* =============== Rip embeds → inline (best‑effort) =============== */
+document.getElementById('btnRipAll').addEventListener('click', async () => {
+  const imgs=[...editor.querySelectorAll('img')]; let ok=0,fail=0; for(const el of imgs){ const {w,h}=dimsOf(el); const alt=altOf(el); const okOne=await ripElementToInline(el,w,h,alt); okOne?ok++:fail++; } setStatus(`Ripped ${ok}, skipped ${fail}.`);
+});
 
-// Utility: clicking a placeholder in editor opens replacement panel quickly
+async function ripElementToInline(imgEl,w,h,alt){
+  try{ const img=new Image(); img.crossOrigin='anonymous'; img.src=imgEl.src; await imgDecode(img); const c=document.createElement('canvas'); c.width=w; c.height=h; const ctx=c.getContext('2d'); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high'; ctx.drawImage(img,0,0,w,h); const data=c.toDataURL('image/png'); const swapped=document.createElement('img'); swapped.alt=alt; swapped.src=data; swapped.width=w; swapped.height=h; swapped.style.cssText=`display:block;width:${w}px;height:${h}px;border:0;outline:0;text-decoration:none;`; imgEl.replaceWith(swapped); return true; }catch(e){ return false; }
+}
+function imgDecode(img){ return new Promise((res,rej)=>{ img.onload=()=>res(); img.onerror=rej; }); }
+
+/* =============== Editor click → open drawer at that image =============== */
 editor.addEventListener('click', (e) => {
-  const el = e.target.closest('img, .placeholder[data-ph]');
-  if (!el) return; openDrawer();
-  // scroll to the clicked element inside the list
-  setTimeout(() => {
-    const entries = [...imagesList.children];
-    const idx = [...editor.querySelectorAll('img, .placeholder[data-ph]')].indexOf(el);
-    if (entries[idx]) entries[idx].scrollIntoView({behavior:'smooth', block:'center'});
-  }, 60);
+  const el = e.target.closest('img, .placeholder[data-ph]'); if(!el) return; openDrawer(); setTimeout(()=>{ const entries=[...imagesList.children]; const idx=[...editor.querySelectorAll('img, .placeholder[data-ph]')].indexOf(el); if(entries[idx]) entries[idx].scrollIntoView({behavior:'smooth', block:'center'}); }, 60);
 });
 </script>
 </body>
